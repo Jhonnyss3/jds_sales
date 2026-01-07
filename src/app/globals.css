@@ -10,6 +10,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-roboto: var(--font-roboto);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,4 +24,14 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Gradiente radial centralizado */
+.bg-gradient-radial {
+  background: radial-gradient(circle at center, rgb(96 165 250), rgb(37 99 235), rgb(0 0 0));
+}
+
+/* Fonte Roboto */
+.font-roboto {
+  font-family: var(--font-roboto), sans-serif;
 }

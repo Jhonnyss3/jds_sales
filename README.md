@@ -144,6 +144,17 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 ---
 
+## 🎨 Design System
+
+O projeto segue uma identidade visual baseada na regra 60/30/10:
+- **60% Preto** - Cor principal
+- **30% Branco** - Cor secundária
+- **10% Azul Claro** - Cor de destaque
+
+Para mais detalhes, consulte [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md)
+
+---
+
 ## 📚 Informações Adicionais
 
 - [Documentação Next.js](https://nextjs.org/docs)
