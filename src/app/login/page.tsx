@@ -65,8 +65,7 @@ export default function LoginPage() {
       }
 
       if (data.user) {
-        router.push('/')
-        router.refresh()
+        router.refresh() 
       }
     } catch (err) {
       setErrors({ general: 'Erro inesperado. Por favor, tente novamente.' })
@@ -150,7 +149,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 bg-white text-blue-600 rounded-lg font-semibold hover:bg-white/90 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98] font-roboto flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 bg-white text-blue-600 rounded-lg font-semibold hover:bg-white/90 transition-all duration-200 shadow-lg hover:shadow-xl cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98] font-roboto flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
