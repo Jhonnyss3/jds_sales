@@ -57,28 +57,41 @@ export interface Database {
         Row: {
           id: string
           email: string
-          full_name: string | null
-          avatar_url: string | null
+          name: string
+          store_id: string | null
+          role: string
+          active: boolean
           created_at: string
           updated_at: string
         }
         Insert: {
           id: string
           email: string
-          full_name?: string | null
-          avatar_url?: string | null
+          name: string
+          store_id?: string | null
+          role?: string
+          active?: boolean
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
           email?: string
-          full_name?: string | null
-          avatar_url?: string | null
+          name?: string
+          store_id?: string | null
+          role?: string
+          active?: boolean
           created_at?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "users_store_id_fkey"
+            columns: ["store_id"]
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       products: {
         Row: {

@@ -22,6 +22,13 @@ const mockSupabaseClient = {
   auth: {
     signInWithPassword: jest.fn(),
   },
+  from: jest.fn(() => ({
+    select: jest.fn(() => ({
+      eq: jest.fn(() => ({
+        single: jest.fn(),
+      })),
+    })),
+  })),
 }
 
 describe('LoginPage', () => {
@@ -227,6 +234,23 @@ describe('LoginPage', () => {
         error: null,
       })
 
+      mockSupabaseClient.from.mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          eq: jest.fn().mockReturnValue({
+            single: jest.fn().mockResolvedValue({
+              data: {
+                id: '123',
+                name: 'Test User',
+                role: 'super_admin',
+                store_id: null,
+                active: true,
+              },
+              error: null,
+            }),
+          }),
+        }),
+      })
+
       render(<LoginPage />)
 
       const emailInput = screen.getByLabelText('Email')
@@ -239,7 +263,7 @@ describe('LoginPage', () => {
       await user.click(submitButton)
 
       await waitFor(() => {
-        expect(mockRouter.refresh).toHaveBeenCalled()
+        expect(mockRouter.push).toHaveBeenCalledWith('/super-admin/dashboard')
       }, { timeout: 3000 })
     })
 

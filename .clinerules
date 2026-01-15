@@ -1,0 +1,463 @@
+# Regras do Projeto - JDS Sales
+
+## 📋 Contexto do Projeto
+
+Este é um **sistema de administração de e-commerce** construído com:
+- **Next.js 16.1.1** (App Router)
+- **React 19.2.3**
+- **TypeScript 5.9.3**
+- **Supabase** (autenticação e banco de dados)
+- **Tailwind CSS 4.1.18**
+- **Jest + React Testing Library** (testes)
+
+O sistema possui controle de acesso baseado em roles:
+- `super_admin`: Acesso total ao sistema
+- `admin`: Administrador de loja específica
+- `user`: Usuário padrão
+
+---
+
+## 🌐 Idioma e Comunicação
+
+- **Sempre responda em PORTUGUÊS (pt-BR)**
+- Use exemplos de código práticos e completos
+- Explique o "por quê" das decisões técnicas apenas se eu perguntar.
+- Seja direto e objetivo, mas educado
+- Incluir comentários somente lógicos no código (como para identificar classes objetos e funções)
+- Nunca utilizar Emojis.
+- Ao responder a uma solicitação com um passo a passo, nunca enviar mais de 1 passo de uma vez. Aguardar comando para o próximo passo sempre.
+
+
+---
+
+## 📁 Estrutura de Pastas
+
+Seguir a estrutura padrão do Next.js App Router:
+
+```
+src/
+├── app/                    # Rotas e páginas (App Router)
+│   ├── (auth)/            # Grupo de rotas de autenticação
+│   ├── (dashboard)/       # Grupo de rotas do dashboard
+│   ├── layout.tsx         # Layouts
+│   └── page.tsx           # Páginas
+├── components/            # Componentes React reutilizáveis
+│   ├── ui/               # Componentes de UI básicos
+│   └── [Feature]/        # Componentes específicos de features
+├── lib/                   # Utilitários e helpers
+│   ├── supabase/         # Clientes Supabase (client, server, middleware)
+│   ├── hooks/            # Custom hooks
+│   └── types/            # Tipos TypeScript
+└── middleware.ts          # Middleware do Next.js
+```
+
+**Regras:**
+- Componentes reutilizáveis em `src/components/`
+- Lógica de negócio em `src/lib/`
+- Páginas e rotas em `src/app/`
+- Nunca colocar lógica de negócio diretamente em componentes de página
+
+---
+
+## 💻 Padrões de Código TypeScript
+
+### Tipagem Estrita
+
+- **Sempre use TypeScript estrito** (`strict: true`)
+- Defina tipos explícitos para props, estados e retornos de função
+- Use `interface` para objetos e `type` para uniões e tipos derivados
+- Evite `any` - use `unknown` quando necessário e faça type guards
+
+**✅ Bom:**
+```typescript
+interface UserProps {
+  id: string
+  name: string
+  role: 'super_admin' | 'admin' | 'user'
+}
+
+function getUser(id: string): Promise<UserProps | null> {
+  // ...
+}
+```
+
+**❌ Ruim:**
+```typescript
+function getUser(id: any): any {
+  // ...
+}
+```
+
+### Nomenclatura
+
+- **Componentes**: PascalCase (`LoginPage.tsx`, `UserCard.tsx`)
+- **Arquivos de utilitários**: camelCase (`user.ts`, `formatDate.ts`)
+- **Hooks customizados**: camelCase com prefixo `use` (`useSessionTimeout.ts`)
+- **Constantes**: UPPER_SNAKE_CASE (`SESSION_TIMEOUT_SECONDS`)
+- **Tipos/Interfaces**: PascalCase (`UserRole`, `Database`)
+
+---
+
+## ⚛️ Padrões React e Next.js
+
+### Componentes
+
+- **Sempre use componentes funcionais** (não classes)
+- Use `'use client'` apenas quando necessário (interatividade, hooks, eventos)
+- Prefira Server Components por padrão
+- Separe lógica de apresentação da lógica de negócio
+
+**✅ Bom:**
+```tsx
+// Server Component (padrão)
+export default async function DashboardPage() {
+  const user = await getUserWithRole()
+  return <Dashboard user={user} />
+}
+
+// Client Component (quando necessário)
+'use client'
+export function InteractiveButton() {
+  const [loading, setLoading] = useState(false)
+  // ...
+}
+```
+
+### Hooks e Estado
+
+- Use `useState` para estado local simples
+- Use `useEffect` com cuidado - sempre inclua dependências
+- Prefira Server Actions para mutations quando possível
+- Custom hooks para lógica reutilizável
+
+**✅ Bom:**
+```tsx
+const [email, setEmail] = useState<string>('')
+const [errors, setErrors] = useState<{ email?: string }>({})
+```
+
+### Formulários
+
+- Sempre valide no cliente E no servidor
+- Use estados de loading e error
+- Mensagens de erro amigáveis em português
+- Desabilite botões durante submit
+
+---
+
+## 🎨 Design System e Estilização
+
+### Paleta de Cores (Regra 60/30/10)
+
+**SEMPRE seguir a identidade visual:**
+
+- **60% - #333745** (Cinza escuro/Preto) - Cor principal
+- **30% - #E8D7F1** (Lavanda claro) - Cor secundária  
+- **10% - #D3BCCC** (Lavanda médio) - Cor de destaque
+
+**Aplicação:**
+- Fundos principais: `#333745`
+- Textos e elementos secundários: `#E8D7F1`
+- Botões e CTAs: `#D3BCCC`
+- Textos escuros sobre fundo claro: `#333745`
+
+### Tailwind CSS
+
+- **Prefira classes Tailwind** sobre estilos inline
+- Use `style={{}}` apenas para cores customizadas do design system
+- Mantenha responsividade (mobile-first)
+- Use `font-roboto` para manter fonte consistente
+
+**✅ Bom:**
+```tsx
+<div className="min-h-screen flex items-center justify-center py-12 px-4" style={{ backgroundColor: '#333745' }}>
+  <button className="w-full py-4 px-6 rounded-lg font-semibold font-roboto" style={{ backgroundColor: '#D3BCCC', color: '#333745' }}>
+    Entrar
+  </button>
+</div>
+```
+
+**❌ Evitar:**
+```tsx
+<div style={{ minHeight: '100vh', display: 'flex', ... }}>
+```
+
+---
+
+## 🔐 Segurança e Autenticação
+
+### Supabase
+
+- **Nunca exponha `SUPABASE_SERVICE_ROLE_KEY`** no cliente
+- Use `createClient()` do `@/lib/supabase/client` para Client Components
+- Use `createClient()` do `@/lib/supabase/server` para Server Components
+- Sempre valide autenticação no middleware E no servidor
+
+### Sessão e Timeout
+
+- **Timeout de sessão: 5 minutos** (300 segundos)
+- Implementar `useSessionTimeout` em páginas protegidas
+- Middleware deve verificar expiração de sessão
+- Cookies com `maxAge` configurado corretamente
+
+### Controle de Acesso (RBAC)
+
+- **Sempre verificar role no middleware** antes de permitir acesso
+- Super Admin: acesso a `/super-admin/*`
+- Admin: acesso apenas a `/admin/{store_id}/*` da sua loja
+- Usuário: acesso a `/dashboard` (padrão)
+- Redirecionar automaticamente baseado em role após login
+
+**✅ Bom:**
+```typescript
+// middleware.ts
+if (pathname.startsWith('/super-admin')) {
+  if (userRole.role !== 'super_admin') {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+}
+```
+
+---
+
+## 🧪 Testes
+
+### Regra Obrigatória
+
+**SEMPRE criar testes para:**
+- Novos componentes
+- Novas funcionalidades
+- Hooks customizados
+- Utilitários e helpers
+- Lógica de autenticação/autorização
+
+### Estrutura de Testes
+
+- Arquivos de teste: `__tests__/[nome].test.tsx` ou `[nome].test.tsx`
+- Use Jest + React Testing Library
+- Mock de dependências externas (Supabase, Next.js router)
+- Testes devem ser descritivos em português
+
+**✅ Bom:**
+```typescript
+describe('LoginPage', () => {
+  it('deve exibir erro quando email é inválido', () => {
+    // ...
+  })
+  
+  it('deve redirecionar após login bem-sucedido', () => {
+    // ...
+  })
+})
+```
+
+### Executar Testes
+
+```bash
+npm test              # Executar todos os testes
+npm run test:watch    # Modo watch
+npm run test:coverage # Com cobertura
+```
+
+---
+
+## 📦 Imports e Organização
+
+### Ordem de Imports
+
+1. React e Next.js
+2. Bibliotecas externas
+3. Imports internos (`@/lib`, `@/components`)
+4. Tipos (no final, com `type`)
+
+**✅ Bom:**
+```typescript
+import { useState, FormEvent } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/Button'
+import type { UserRole } from '@/lib/types'
+```
+
+### Path Aliases
+
+- **Sempre use `@/`** para imports relativos a `src/`
+- Não use `../../../` - use `@/lib/...`
+
+---
+
+## 🗄️ Banco de Dados (Supabase)
+
+### Tipos do Banco
+
+- **Sempre manter `database.types.ts` atualizado** com schema real
+- Tipos devem refletir exatamente a estrutura do banco
+- Use tipos gerados do Supabase quando possível
+
+### Queries
+
+- Use `.select()` explícito (não `*`)
+- Sempre trate erros de query
+- Use `.single()` quando esperar um único resultado
+- Valide dados retornados antes de usar
+
+**✅ Bom:**
+```typescript
+const { data, error } = await supabase
+  .from('users')
+  .select('id, name, role, store_id')
+  .eq('id', user.id)
+  .single()
+
+if (error || !data) {
+  return null
+}
+```
+
+---
+
+## 🚀 Performance
+
+### Otimizações
+
+- Use `next/image` para imagens
+- Lazy load de componentes pesados
+- Server Components por padrão (menos JavaScript no cliente)
+- Evite re-renders desnecessários (use `useMemo`, `useCallback` quando apropriado)
+
+### Build e Deploy
+
+- Sempre testar `npm run build` antes de commitar
+- Verificar que não há erros de TypeScript
+- Verificar que todos os testes passam
+- Variáveis de ambiente devem estar no `.env.example`
+
+---
+
+## 📝 Commits e Git
+
+### Mensagens de Commit
+
+- Use português para mensagens
+- Seja descritivo mas conciso
+- Formato: `tipo: descrição breve`
+
+**Exemplos:**
+```
+feat: adiciona redirecionamento baseado em role após login
+fix: corrige timeout de sessão no middleware
+test: adiciona testes para página de login
+refactor: reorganiza estrutura de pastas dos componentes
+```
+
+### Arquivos a Ignorar
+
+- `.env.local` (nunca commitar)
+- `.env` (nunca commitar)
+- `.env.example` (pode commitar)
+- `node_modules/`
+- `.next/`
+
+---
+
+## ⚠️ Erros e Tratamento
+
+### Tratamento de Erros
+
+- **Sempre trate erros** de forma amigável
+- Mensagens de erro em português para o usuário
+- Logs de erro detalhados no console (dev)
+- Não exponha detalhes técnicos ao usuário final
+
+**✅ Bom:**
+```typescript
+try {
+  const { error } = await supabase.auth.signInWithPassword({ email, password })
+  if (error) {
+    if (error.message.includes('Invalid login credentials')) {
+      setErrors({ general: 'Email ou senha incorretos.' })
+    } else {
+      setErrors({ general: 'Erro ao fazer login. Tente novamente.' })
+    }
+  }
+} catch (err) {
+  setErrors({ general: 'Erro inesperado. Tente novamente.' })
+}
+```
+
+---
+
+## 🔄 Estado e Gerenciamento de Dados
+
+### Estado Local vs Global
+
+- **Prefira estado local** (`useState`) quando possível
+- Use Context API apenas quando necessário compartilhar estado entre muitos componentes
+- Evite prop drilling excessivo
+
+### Server vs Client State
+
+- Dados do servidor: use Server Components e Server Actions
+- Estado de UI (loading, modals): use Client Components
+- Cache: use `revalidatePath` e `revalidateTag` do Next.js
+
+---
+
+## 📚 Documentação
+
+### Comentários no Código
+
+- Comente lógica complexa ou não óbvia
+- Use JSDoc para funções públicas
+- Mantenha comentários atualizados
+
+**✅ Bom:**
+```typescript
+/**
+ * Busca informações do usuário incluindo role e store_id
+ * @returns UserWithRole ou null se não encontrar
+ */
+export async function getUserWithRole(): Promise<UserWithRole | null> {
+  // ...
+}
+```
+
+### README e Docs
+
+- Mantenha `README.md` atualizado
+- Documente decisões importantes em comentários
+- Atualize `DESIGN_SYSTEM.md` quando houver mudanças
+
+---
+
+## ✅ Checklist Antes de Commitar
+
+Antes de fazer commit, verificar:
+
+- [ ] Código compila sem erros (`npm run build`)
+- [ ] Todos os testes passam (`npm test`)
+- [ ] ESLint não mostra erros (`npm run lint`)
+- [ ] Testes foram criados para novas funcionalidades
+- [ ] Tipos TypeScript estão corretos
+- [ ] Cores seguem o design system (60/30/10)
+- [ ] Autenticação/autorização está funcionando
+- [ ] Middleware protege rotas corretamente
+- [ ] Mensagens de erro estão em português
+- [ ] Não há console.logs ou código de debug
+- [ ] Variáveis de ambiente estão no `.env.example` (se novas)
+
+---
+
+## 🎯 Prioridades
+
+1. **Segurança**: Sempre a prioridade máxima
+2. **Testes**: Nunca pular criação de testes
+3. **TypeScript**: Tipagem estrita sempre
+4. **Design System**: Seguir paleta de cores rigorosamente
+5. **Performance**: Otimizar quando necessário
+6. **UX**: Mensagens claras e feedback visual
+
+---
+
+**Última atualização**: 2024
+**Versão**: 1.0

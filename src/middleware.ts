@@ -1,91 +1,94 @@
-// middleware.ts
-import { createServerClient } from '@supabase/ssr'
+import { updateSession } from '@/lib/supabase/middleware'
 import { NextResponse, type NextRequest } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
-export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  const { data: { user } } = await supabase.auth.getUser()
-  const hostname = request.headers.get('host') || ''
-  const pathname = request.nextUrl.pathname
-
-  // 1. DETECTA CONTEXTO (super admin ou loja)
-  const isSuperAdminDomain = hostname.includes('localhost') || hostname.includes('seuapp.com')
+async function getUserRole(request: NextRequest) {
+  const supabase = await createClient()
   
-  // 2. SE NÃO ESTÁ LOGADO
-  if (!user) {
-    // Permite acessar /login
-    if (pathname === '/login') {
-      return supabaseResponse
-    }
-    
-    // Redireciona para login se tentar acessar área protegida
-    if (pathname.startsWith('/super-admin') || pathname.startsWith('/admin')) {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
-    
-    return supabaseResponse
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  
+  if (authError || !user) {
+    return null
   }
 
-  // 3. SE ESTÁ LOGADO - busca role
-  const { data: userData } = await supabase
+  const { data: userData, error } = await supabase
     .from('users')
-    .select('role, store_id')
+    .select('role, store_id, active')
     .eq('id', user.id)
     .single()
 
-  if (!userData) {
-    // Usuário sem dados, faz logout
-    await supabase.auth.signOut()
-    return NextResponse.redirect(new URL('/login', request.url))
+  if (error || !userData || !userData.active) {
+    return null
   }
 
-  // 4. LÓGICA DE REDIRECIONAMENTO PÓS-LOGIN
-  if (pathname === '/login') {
-    // Já logado, redireciona baseado em role
-    if (userData.role === 'super_admin') {
-      return NextResponse.redirect(new URL('/super-admin/lojas', request.url))
-    } else {
-      return NextResponse.redirect(new URL('/admin/produtos', request.url))
-    }
+  return {
+    role: userData.role as 'super_admin' | 'admin' | 'user',
+    store_id: userData.store_id as string | null,
   }
+}
 
-  // 5. PROTEÇÃO DE ROTAS
+function getRedirectPath(role: 'super_admin' | 'admin' | 'user', storeId: string | null): string {
+  if (role === 'super_admin') {
+    return '/super-admin/dashboard'
+  }
   
-  // Super admin tentando acessar área de super admin
-  if (pathname.startsWith('/super-admin')) {
-    if (userData.role !== 'super_admin') {
+  if (role === 'admin' && storeId) {
+    return `/admin/${storeId}/dashboard`
+  }
+  
+  return '/dashboard'
+}
+
+export async function middleware(request: NextRequest) {
+  const supabaseResponse = await updateSession(request)
+  
+  const pathname = request.nextUrl.pathname
+  const publicRoutes = ['/', '/test', '/login', '/auth']
+  const isPublicRoute = publicRoutes.some(route => 
+    pathname === route || pathname.startsWith('/auth')
+  )
+
+  if (isPublicRoute) {
+    return supabaseResponse
+  }
+
+  const userRole = await getUserRole(request)
+
+  if (!userRole) {
+    if (pathname !== '/login') {
       return NextResponse.redirect(new URL('/login', request.url))
+    }
+    return supabaseResponse
+  }
+
+  if (pathname === '/login') {
+    const redirectPath = getRedirectPath(userRole.role, userRole.store_id)
+    return NextResponse.redirect(new URL(redirectPath, request.url))
+  }
+
+  const { role, store_id } = userRole
+
+  if (pathname.startsWith('/super-admin')) {
+    if (role !== 'super_admin') {
+      const redirectPath = getRedirectPath(role, store_id)
+      return NextResponse.redirect(new URL(redirectPath, request.url))
     }
   }
 
-  // Admin de loja tentando acessar área admin
   if (pathname.startsWith('/admin')) {
-    if (userData.role !== 'admin' && userData.role !== 'super_admin') {
-      return NextResponse.redirect(new URL('/login', request.url))
+    if (role !== 'admin' && role !== 'super_admin') {
+      const redirectPath = getRedirectPath(role, store_id)
+      return NextResponse.redirect(new URL(redirectPath, request.url))
+    }
+    
+    if (role === 'admin' && store_id) {
+      const pathParts = pathname.split('/').filter(Boolean)
+      if (pathParts[0] === 'admin' && pathParts[1] && pathParts[1] !== 'dashboard') {
+        const pathStoreId = pathParts[1]
+        if (pathStoreId !== store_id) {
+          return NextResponse.redirect(new URL(`/admin/${store_id}/dashboard`, request.url))
+        }
+      }
     }
   }
 
