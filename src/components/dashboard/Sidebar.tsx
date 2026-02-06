@@ -13,6 +13,7 @@ export function Sidebar({ userName, userRole }: SidebarProps) {
 
   const menuItems = [
     { href: '/super-admin/dashboard', label: 'Dashboard', icon: 'grid' },
+    { href: '/super-admin/lojas', label: 'Lojas', icon: 'store' },
     { href: '/super-admin/solicitacoes', label: 'Solicitações', icon: 'document' },
     { href: '/super-admin/documentos', label: 'Documentos', icon: 'document' },
   ]
@@ -46,7 +47,9 @@ export function Sidebar({ userName, userRole }: SidebarProps) {
                 color: isActive ? '#333745' : '#E8D7F1',
               }}
             >
-                <span className="text-lg font-roboto">{item.icon === 'grid' ? '▦' : 'D'}</span>
+                <span className="text-lg font-roboto">
+                {item.icon === 'grid' ? '▦' : item.icon === 'store' ? 'S' : 'D'}
+              </span>
               <span>{item.label}</span>
             </Link>
           )
